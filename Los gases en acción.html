@@ -1,0 +1,545 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Los gases en acción</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Onest:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: sticky control bar (clock + stage chips) over one centered column; each stage is a stack of practice cards. */
+:root{
+  --bg:#f1f5f8; --surface:#ffffff; --surface-2:#e7eef4; --bar:#10283a; --bar-ink:#eaf3fa;
+  --ink:#11202c; --ink-2:#44586a; --ua:#08694f; --line:#d2dce5;
+  --accent:#0a5fa8; --accent-ink:#ffffff; --gas:#d9661f;
+  --ok:#11693a; --ok-bg:#e0f3e7; --bad:#a1241d; --bad-bg:#fbe6e4; --warn:#8a5a00; --warn-bg:#fff2d6;
+  --sans:Onest,system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1620; --surface:#14212d; --surface-2:#1b2c3b; --bar:#08121b; --bar-ink:#e6eef5;
+  --ink:#e5edf4; --ink-2:#a6b8c7; --ua:#5fd1a9; --line:#283b4c;
+  --accent:#62b4f2; --accent-ink:#06192a; --gas:#f0975a;
+  --ok:#72d79c; --ok-bg:#12392a; --bad:#ff9d95; --bad-bg:#3b1b19; --warn:#f2c36b; --warn-bg:#3a2e12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1620; --surface:#14212d; --surface-2:#1b2c3b; --bar:#08121b; --bar-ink:#e6eef5;
+  --ink:#e5edf4; --ink-2:#a6b8c7; --ua:#5fd1a9; --line:#283b4c;
+  --accent:#62b4f2; --accent-ink:#06192a; --gas:#f0975a;
+  --ok:#72d79c; --ok-bg:#12392a; --bad:#ff9d95; --bad-bg:#3b1b19; --warn:#f2c36b; --warn-bg:#3a2e12; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--sans);padding-bottom:56px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bar);z-index:30}
+.wrap{max-width:920px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ua{color:var(--ua)}
+.hide-ua .ua{display:none}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bar);color:var(--bar-ink)}
+.bar .ua{color:#8fe3c3}
+.bar-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-block:10px 6px}
+.brand{display:flex;flex-direction:column;line-height:1.15;margin-right:auto;min-width:0}
+.brand strong{font-weight:800;font-size:17px;letter-spacing:.01em}
+.brand .ua{font-size:13px}
+.clock{display:flex;align-items:center;gap:10px}
+.tm{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+.tm b{font:600 22px/1 var(--mono);font-variant-numeric:tabular-nums}
+.tm small{font-size:10.5px;opacity:.75;text-transform:uppercase;letter-spacing:.06em}
+.tm.late b{color:#ffb4ab}
+.tm.low b{color:#ffd37a}
+.btn-bar{background:#fff1;border:1px solid #fff4;color:var(--bar-ink);border-radius:8px;padding:6px 10px;font-weight:600;font-size:13px;white-space:nowrap}
+.btn-bar:hover{background:#fff3}
+.score{font:600 13px var(--mono);background:#fff1;border-radius:8px;padding:6px 10px;white-space:nowrap}
+.opt-ua{display:flex;align-items:center;gap:6px;font-size:12px;opacity:.9}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-block:4px 10px;scrollbar-width:thin}
+.chip{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:#fff1;border:1px solid transparent;color:var(--bar-ink);border-radius:10px;padding:5px 10px 5px 6px;text-align:left}
+.chip .n{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#fff2;font:600 12px var(--mono)}
+.chip .cn{display:flex;flex-direction:column;line-height:1.15}
+.chip b{font-weight:600;font-size:13px}
+.chip small{font:400 11px var(--mono);opacity:.75}
+.chip.on{background:#fff;color:#10283a;border-color:#fff}
+.chip.on .n{background:var(--accent);color:var(--accent-ink)}
+.chip.done .n{background:#2e9d62;color:#fff}
+
+/* stage head */
+main{padding-block:22px 10px}
+.eyebrow{font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:0 0 6px}
+h1{margin:0;font-weight:800;font-size:clamp(26px,5vw,38px);line-height:1.1;letter-spacing:-.01em;text-wrap:balance}
+h1.ua{font-size:clamp(18px,3.4vw,24px);font-weight:600;margin-top:4px}
+.goal{margin:12px 0 18px;color:var(--ink-2);max-width:70ch}
+.goal .ua{display:block}
+
+/* cards */
+.item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;margin-bottom:14px}
+.item.done{border-color:var(--ok)}
+.i-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.i-n{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--surface-2);font:600 13px var(--mono)}
+.item.done .i-n{background:var(--ok);color:var(--accent-ink)}
+.tag{font:600 11.5px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+.q p{margin:0}
+.q .es{font-weight:500;font-size:17px}
+.q .ua{font-size:15px;margin-top:2px}
+.q sub,.q sup,.steps sub,.steps sup{line-height:0}
+.opts{display:grid;gap:8px;margin-top:12px}
+.opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;width:100%}
+.opt:hover:not(:disabled){border-color:var(--accent);background:var(--surface-2)}
+.opt .ua{font-size:13.5px}
+.opt.ok{border-color:var(--ok);background:var(--ok-bg)}
+.opt.bad{border-color:var(--bad);background:var(--bad-bg);opacity:.85}
+.opt:disabled{cursor:default}
+.fill{font-size:17px;line-height:2.2;margin-top:6px}
+.fill-ua{font-size:15px;color:var(--ua);line-height:1.6;margin-top:2px}
+select{background:var(--surface-2);border:1.5px solid var(--line);border-radius:8px;padding:4px 8px;max-width:100%;font-size:15px}
+select.ok{border-color:var(--ok);background:var(--ok-bg)}
+select.bad{border-color:var(--bad);background:var(--bad-bg)}
+.calc{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.calc input{width:150px;background:var(--surface-2);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font:600 17px var(--mono);font-variant-numeric:tabular-nums}
+.calc input:disabled{opacity:.8}
+.unit{font:500 16px var(--mono);color:var(--ink-2)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:8px 14px;font-weight:600}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.fb{margin-top:12px;border-radius:10px;padding:9px 12px;font-size:15px}
+.fb .ua{display:block;font-size:14px}
+.fb.ok{background:var(--ok-bg);color:var(--ok)}
+.fb.bad{background:var(--bad-bg);color:var(--bad)}
+.fb.warn{background:var(--warn-bg);color:var(--warn)}
+.fb.ok .ua,.fb.bad .ua,.fb.warn .ua{color:inherit;opacity:.92}
+.fb.note{background:var(--surface-2);color:var(--ink)}
+.fb.note .ua{color:var(--ua)}
+.steps{margin-top:12px;border-left:3px solid var(--accent);padding:2px 0 2px 12px;display:grid;gap:8px;font-size:15px}
+.steps .ua{font-size:14px;display:block}
+.steps code,.fb code{font-family:var(--mono);font-size:14px}
+
+/* nav */
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+
+/* theory */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.card h3{margin:0 0 2px;font-size:16px;font-weight:700}
+.card h3 .ua{display:block;font-size:13.5px;font-weight:500}
+.formula{font:600 17px/1.4 var(--mono);background:var(--surface-2);border-radius:8px;padding:8px 10px;margin:8px 0;overflow-x:auto;white-space:nowrap}
+.card p{margin:4px 0;font-size:14.5px;color:var(--ink-2)}
+.card p.ua{color:var(--ua);font-size:13.5px}
+.plan{background:var(--surface-2);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.plan h3{margin:0 0 8px;font-size:16px}
+.plan ol{margin:0;padding-left:22px;display:grid;gap:4px;font-size:15px}
+.plan .ua{font-size:14px}
+
+/* lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.lab-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.lab-head h3{margin:0;font-size:16px}
+.lab-head h3 .ua{display:block;font-size:13.5px;font-weight:500}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:6px 14px;font-weight:600}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.lab-body{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:18px;align-items:center;margin-top:8px}
+@media (max-width:640px){.lab-body{grid-template-columns:1fr}}
+#labSvg{width:100%;max-width:320px;height:auto;display:block;margin:0 auto}
+.lab-ctl label{display:block;font-weight:600;margin-bottom:4px}
+.lab-ctl input[type=range]{width:100%;accent-color:var(--accent)}
+.readout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 6px}
+.readout div{background:var(--surface-2);border-radius:9px;padding:6px 8px}
+.readout dt{font:500 11px var(--mono);color:var(--ink-2)}
+.readout dd{margin:0;font:600 17px var(--mono);font-variant-numeric:tabular-nums}
+.lab-note{font-size:14px;color:var(--ink-2);margin:6px 0 0}
+.lab-note .ua{display:block}
+
+/* results */
+.res{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:6px}
+.res h2{margin:0 0 2px;font-size:22px}
+.big{font:800 40px/1 var(--mono);font-variant-numeric:tabular-nums}
+.big small{font-size:18px;font-weight:600;color:var(--ink-2)}
+.bars{display:grid;gap:8px;margin:14px 0}
+.bar-row{display:grid;grid-template-columns:minmax(110px,170px) 1fr 64px;gap:10px;align-items:center;font-size:14px}
+.track{height:10px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.fillbar{height:100%;background:var(--accent);border-radius:6px}
+.bar-row span:last-child{font:600 13px var(--mono);text-align:right}
+@media (max-width:520px){.bar-row{grid-template-columns:1fr 70px}.bar-row .track{grid-column:1 / -1;order:3}}
+.hw{margin-top:12px}
+@media (prefers-reduced-motion:no-preference){.fillbar{transition:width .5s}}
+</style>
+
+<header class="bar"><div class="wrap">
+  <div class="bar-top">
+    <div class="brand"><strong>Los gases en acción</strong><span class="ua">Гази в дії</span></div>
+    <label class="opt-ua"><input type="checkbox" id="uaToggle" checked> Traducción · Переклад</label>
+    <div class="score" id="score">0 / 0</div>
+    <div class="clock">
+      <div class="tm" id="tmStage"><b id="stClk">5:00</b><small>etapa · етап</small></div>
+      <div class="tm" id="tmAll"><b id="clk">60:00</b><small>clase · урок</small></div>
+      <button class="btn-bar" id="clkBtn">Iniciar · Почати</button>
+      <button class="btn-bar" id="clkReset" aria-label="Reiniciar reloj · Скинути таймер" title="Reiniciar reloj · Скинути таймер">↺</button>
+    </div>
+  </div>
+  <nav class="chips" id="chips" aria-label="Etapas · Етапи"></nav>
+</div></header>
+
+<main class="wrap" id="main"></main>
+
+<script>
+(function(){
+const L=(es,ua)=>({es,ua});
+const $=(s,r)=>(r||document).querySelector(s);
+const fmt=n=>String(Math.round(n*100)/100).replace('.',',');
+
+/* ---------- DATA ---------- */
+const STAGES=[
+{k:'cal',min:5,win:'0–5',t:L('Calentamiento','Розминка'),
+ g:L('Tres preguntas rápidas para recordar qué es un gas.','Три швидкі запитання, щоб згадати, що таке газ.'),
+ items:[
+ {id:'m1',type:'mc',q:L('¿Cuál de estas sustancias existe como gas a 25 °C y 1 atm?','Яка з цих речовин існує як газ за 25 °C і 1 атм?'),
+  opts:[L('NaCl','NaCl'),L('CO<sub>2</sub>','CO<sub>2</sub>'),L('H<sub>2</sub>O (agua)','H<sub>2</sub>O (вода)'),L('Fe','Fe')],ans:1,
+  why:L('Los compuestos iónicos como el NaCl son sólidos. El CO<sub>2</sub> es un compuesto molecular y aparece en la tabla 5.1.','Йонні сполуки, як NaCl, — тверді. CO<sub>2</sub> — молекулярна сполука з таблиці 5.1.')},
+ {id:'m2',type:'mc',q:L('Los gases nobles (grupo 8A) existen como…','Інертні гази (група 8A) існують як…'),
+  opts:[L('moléculas diatómicas (He<sub>2</sub>, Ne<sub>2</sub>)','двоатомні молекули (He<sub>2</sub>, Ne<sub>2</sub>)'),L('especies monoatómicas (He, Ne, Ar)','одноатомні частинки (He, Ne, Ar)'),L('líquidos a 25 °C','рідини за 25 °C')],ans:1,
+  why:L('He, Ne, Ar, Kr, Xe y Rn son gases monoatómicos. H<sub>2</sub>, N<sub>2</sub>, O<sub>2</sub>, F<sub>2</sub> y Cl<sub>2</sub> son diatómicos.','He, Ne, Ar, Kr, Xe і Rn — одноатомні гази. H<sub>2</sub>, N<sub>2</sub>, O<sub>2</sub>, F<sub>2</sub> і Cl<sub>2</sub> — двоатомні.')},
+ {id:'m3',type:'mc',q:L('¿Qué afirmación sobre los gases es correcta?','Яке твердження про гази правильне?'),
+  opts:[L('Tienen forma y volumen propios','Мають власну форму й об’єм'),L('Adoptan la forma y el volumen del recipiente','Набувають форми й об’єму посудини'),L('Son los menos compresibles de los estados de la materia','Найменш стисливий стан речовини'),L('Tienen densidades mucho mayores que los sólidos','Їхня густина набагато більша, ніж у твердих тіл')],ans:1,
+  why:L('Los gases se expanden hasta llenar el recipiente, son muy compresibles y su densidad es mucho menor.','Гази заповнюють посудину, дуже стисливі, а їхня густина набагато менша.')}
+ ]},
+{k:'teo',min:7,win:'5–12',t:L('Teoría exprés','Теорія експрес'),theory:true,
+ g:L('Siete minutos: lee las tarjetas, prueba el laboratorio y pasa a la práctica.','Сім хвилин: прочитай картки, спробуй лабораторію й переходь до практики.')},
+{k:'pre',min:10,win:'12–22',t:L('Presión de un gas','Тиск газу'),
+ g:L('Unidades de presión y conversiones, como en los ejemplos 5.1 y 5.2.','Одиниці тиску й переведення, як у прикладах 5.1 і 5.2.'),
+ items:[
+ {id:'m4',type:'mc',q:L('La unidad SI de presión es el pascal (Pa). ¿A qué equivale 1 Pa?','Одиниця тиску в SI — паскаль (Па). Чому дорівнює 1 Па?'),
+  opts:[L('1 kg · m/s²','1 кг · м/с²'),L('1 N/m²','1 Н/м²'),L('1 atm / 760','1 атм / 760'),L('1 mmHg','1 мм рт. ст.')],ans:1,
+  why:L('Presión = fuerza / área, así que 1 Pa = 1 N/m². (1 kg·m/s² es un newton, la unidad de fuerza.)','Тиск = сила / площа, тому 1 Па = 1 Н/м². (1 кг·м/с² — це ньютон, одиниця сили.)')},
+ {id:'m5',type:'mc',q:L('¿Por qué se usa mercurio en los barómetros?','Чому у барометрах використовують ртуть?'),
+  opts:[L('Porque es incoloro','Бо вона безбарвна'),L('Porque su densidad es muy alta (13,6 g/mL) y la columna resulta corta','Бо її густина дуже висока (13,6 г/мл) і стовпчик виходить коротким'),L('Porque no es tóxico','Бо вона не токсична'),L('Porque se evapora fácilmente','Бо легко випаровується')],ans:1,
+  why:L('La altura de la columna es inversamente proporcional a la densidad del líquido; con mercurio basta 760 mm.','Висота стовпчика обернено пропорційна густині рідини; для ртуті достатньо 760 мм.')},
+ {id:'c1',type:'calc',q:L('La presión del aire en la cabina de un avión es 640 mmHg. ¿Cuál es la presión en atm?','Тиск повітря в салоні літака — 640 мм рт. ст. Який тиск в атм?'),
+  unit:'atm',ans:0.842,tol:0.012,
+  hint:L('Factor de conversión: 1 atm / 760 mmHg.','Множник переходу: 1 атм / 760 мм рт. ст.'),
+  steps:[L('P = 640 <s>mmHg</s> × (1 atm / 760 <s>mmHg</s>) = <b>0,842 atm</b>','P = 640 <s>мм рт. ст.</s> × (1 атм / 760 <s>мм рт. ст.</s>) = <b>0,842 атм</b>')]},
+ {id:'c2',type:'calc',q:L('Un día, la presión atmosférica en Kiev fue de 745 mmHg. ¿Cuál fue la presión en kPa?','Одного дня атмосферний тиск у Києві становив 745 мм рт. ст. Який тиск у кПа?'),
+  unit:'kPa',ans:99.3,tol:0.012,
+  hint:L('1 atm = 760 mmHg = 101,325 kPa.','1 атм = 760 мм рт. ст. = 101,325 кПа.'),
+  steps:[L('P = 745 <s>mmHg</s> × (101,325 kPa / 760 <s>mmHg</s>) = <b>99,3 kPa</b>','P = 745 <s>мм рт. ст.</s> × (101,325 кПа / 760 <s>мм рт. ст.</s>) = <b>99,3 кПа</b>')]},
+ {id:'m6',type:'mc',q:L('Ordena de menor a mayor: <b>a)</b> 750 mmHg, <b>b)</b> 0,950 atm, <b>c)</b> 745 torr, <b>d)</b> 1,01 × 10<sup>5</sup> Pa.','Розташуй від меншого до більшого: <b>a)</b> 750 мм рт. ст., <b>b)</b> 0,950 атм, <b>c)</b> 745 торр, <b>d)</b> 1,01 × 10<sup>5</sup> Па.'),
+  opts:[L('b &lt; c &lt; a &lt; d','b &lt; c &lt; a &lt; d'),L('c &lt; b &lt; a &lt; d','c &lt; b &lt; a &lt; d'),L('b &lt; a &lt; c &lt; d','b &lt; a &lt; c &lt; d'),L('d &lt; a &lt; c &lt; b','d &lt; a &lt; c &lt; b')],ans:0,
+  why:L('Todo en mmHg: b) 0,950 × 760 = 722; c) 745; a) 750; d) 1,01×10<sup>5</sup>/101 325 × 760 = 757,5.','Усе в мм рт. ст.: b) 0,950 × 760 = 722; c) 745; a) 750; d) 1,01×10<sup>5</sup>/101 325 × 760 = 757,5.')}
+ ]},
+{k:'ley',min:12,win:'22–34',t:L('Leyes de los gases','Закони газів'),
+ g:L('Boyle, Charles y Avogadro: completa las frases y resuelve tres problemas.','Бойль, Шарль, Авогадро: заповни речення й розв’яжи три задачі.'),
+ items:[
+ {id:'f1',type:'fill',
+  es:['A temperatura constante, el volumen de una cantidad fija de gas es ',{o:[['directamente','прямо'],['inversamente','обернено']],a:1},' proporcional a la presión: P₁V₁ = ',{o:['P₂V₂','P₂/V₂','V₂/P₂'],a:0},'.'],
+  ua:'За сталої температури об’єм певної кількості газу ___ пропорційний тиску: P₁V₁ = ___.'},
+ {id:'f2',type:'fill',
+  es:['A presión constante, el volumen de un gas es ',{o:[['directamente','прямо'],['inversamente','обернено']],a:0},' proporcional a su temperatura, que debe expresarse en ',{o:[['grados Celsius','градуси Цельсія'],['kelvin','кельвіни'],['grados Fahrenheit','градуси Фаренгейта']],a:1},'. K = °C + ',{o:['273','100','32'],a:0},'.'],
+  ua:'За сталого тиску об’єм газу ___ пропорційний його температурі, яку треба виражати в ___. K = °C + ___.'},
+ {id:'f3',type:'fill',
+  es:['A P y T constantes, el volumen de un gas es directamente proporcional al ',{o:[['número de moles','кількість молів'],['masa del recipiente','маса посудини'],['color del gas','колір газу']],a:0},'. Por eso, en 3H₂ + N₂ → 2NH₃ los volúmenes están en proporción ',{o:['3 : 1 : 2','1 : 1 : 1','3 : 1 : 3'],a:0},'.'],
+  ua:'За сталих P і T об’єм газу прямо пропорційний ___ газу. Тому в реакції 3H₂ + N₂ → 2NH₃ об’єми відносяться як ___.'},
+ {id:'c3',type:'calc',q:L('Una muestra de gas ocupa 3,00 L a 1,20 atm. ¿Qué volumen ocupará a 0,80 atm si la temperatura no cambia?','Зразок газу займає 3,00 л за 1,20 атм. Який об’єм він займе за 0,80 атм, якщо температура не змінюється?'),
+  unit:'L',ans:4.5,tol:0.01,
+  hint:L('Ley de Boyle: P₁V₁ = P₂V₂. Despeja V₂.','Закон Бойля: P₁V₁ = P₂V₂. Виразити V₂.'),
+  steps:[L('V<sub>2</sub> = P<sub>1</sub>V<sub>1</sub> / P<sub>2</sub> = (1,20 × 3,00) / 0,80 = <b>4,50 L</b>','V<sub>2</sub> = P<sub>1</sub>V<sub>1</sub> / P<sub>2</sub> = (1,20 × 3,00) / 0,80 = <b>4,50 л</b>')]},
+ {id:'c4',type:'calc',q:L('Un gas ocupa 2,50 L a 27 °C. ¿Qué volumen tendrá a 127 °C si la presión es constante?','Газ займає 2,50 л за 27 °C. Який об’єм він матиме за 127 °C, якщо тиск сталий?'),
+  unit:'L',ans:3.33,tol:0.01,
+  hint:L('Pasa las temperaturas a kelvin antes de usar V₁/T₁ = V₂/T₂.','Переведи температури в кельвіни перед використанням V₁/T₁ = V₂/T₂.'),
+  steps:[L('T<sub>1</sub> = 27 + 273 = 300 K; T<sub>2</sub> = 127 + 273 = 400 K','T<sub>1</sub> = 27 + 273 = 300 K; T<sub>2</sub> = 127 + 273 = 400 K'),
+         L('V<sub>2</sub> = V<sub>1</sub> × T<sub>2</sub> / T<sub>1</sub> = 2,50 × 400 / 300 = <b>3,33 L</b>','V<sub>2</sub> = V<sub>1</sub> × T<sub>2</sub> / T<sub>1</sub> = 2,50 × 400 / 300 = <b>3,33 л</b>')]},
+ {id:'c5',type:'calc',q:L('En 3H<sub>2</sub>(g) + N<sub>2</sub>(g) → 2NH<sub>3</sub>(g), ¿cuántos litros de NH<sub>3</sub> se forman a partir de 6,0 L de N<sub>2</sub> (misma P y T)?','У реакції 3H<sub>2</sub>(g) + N<sub>2</sub>(g) → 2NH<sub>3</sub>(g) скільки літрів NH<sub>3</sub> утвориться з 6,0 л N<sub>2</sub> (однакові P і T)?'),
+  unit:'L',ans:12,tol:0.01,
+  hint:L('Volúmenes y moles son proporcionales: 1 volumen de N<sub>2</sub> da 2 volúmenes de NH<sub>3</sub>.','Об’єми й молі пропорційні: 1 об’єм N<sub>2</sub> дає 2 об’єми NH<sub>3</sub>.'),
+  steps:[L('1 : 2 → V(NH<sub>3</sub>) = 6,0 × 2 = <b>12 L</b>','1 : 2 → V(NH<sub>3</sub>) = 6,0 × 2 = <b>12 л</b>')]}
+ ]},
+{k:'ide',min:12,win:'34–46',t:L('Gas ideal PV = nRT','Ідеальний газ PV = nRT'),
+ g:L('Una sola ecuación para P, V, T y n. Cuidado con los kelvin.','Одне рівняння для P, V, T і n. Стеж за кельвінами.'),
+ items:[
+ {id:'m7',type:'mc',q:L('En PV = nRT, la temperatura debe expresarse en…','У PV = nRT температуру треба виражати в…'),
+  opts:[L('grados Celsius','градусах Цельсія'),L('kelvin','кельвінах'),L('grados Fahrenheit','градусах Фаренгейта')],ans:1,
+  why:L('La escala Kelvin parte del cero absoluto, así que T es proporcional a la energía de las moléculas.','Шкала Кельвіна починається від абсолютного нуля, тому T пропорційна енергії молекул.')},
+ {id:'m8',type:'mc',q:L('¿Qué valor de R usamos con P en atm y V en litros?','Яке значення R беремо, коли P в атм, а V у літрах?'),
+  opts:[L('0,0821 L·atm/(K·mol)','0,0821 л·атм/(К·моль)'),L('22,41 L/mol','22,41 л/моль'),L('1,01325 × 10<sup>5</sup> Pa','1,01325 × 10<sup>5</sup> Па'),L('760 mmHg/atm','760 мм рт. ст./атм')],ans:0,
+  why:L('R = 0,0821 L·atm/(K·mol). Con otras unidades, R cambia.','R = 0,0821 л·атм/(К·моль). З іншими одиницями R змінюється.')},
+ {id:'c6',type:'calc',q:L('Calcula la presión (atm) de 2,00 mol de gas en un recipiente de 10,0 L a 25 °C.','Обчисли тиск (атм) 2,00 моль газу в посудині на 10,0 л за 25 °C.'),
+  unit:'atm',ans:4.89,tol:0.01,
+  hint:L('P = nRT / V, con T = 25 + 273 K.','P = nRT / V, де T = 25 + 273 K.'),
+  steps:[L('T = 25 + 273 = 298 K','T = 25 + 273 = 298 K'),L('P = nRT / V = (2,00 × 0,0821 × 298) / 10,0 = <b>4,89 atm</b>','P = nRT / V = (2,00 × 0,0821 × 298) / 10,0 = <b>4,89 атм</b>')]},
+ {id:'c7',type:'calc',q:L('¿Qué volumen (L) ocupan 1,50 mol de óxido nítrico (NO) a 4,00 atm y 50 °C?','Який об’єм (л) займають 1,50 моль нітроген(II) оксиду (NO) за 4,00 атм і 50 °C?'),
+  unit:'L',ans:9.94,tol:0.01,
+  hint:L('V = nRT / P, con T = 50 + 273 K.','V = nRT / P, де T = 50 + 273 K.'),
+  steps:[L('T = 50 + 273 = 323 K','T = 50 + 273 = 323 K'),L('V = nRT / P = (1,50 × 0,0821 × 323) / 4,00 = <b>9,94 L</b>','V = nRT / P = (1,50 × 0,0821 × 323) / 4,00 = <b>9,94 л</b>')]},
+ {id:'c8',type:'calc',q:L('¿Cuántos moles de gas hay en 5,00 L a 2,00 atm y 27 °C?','Скільки молів газу міститься в 5,00 л за 2,00 атм і 27 °C?'),
+  unit:'mol',ans:0.406,tol:0.012,
+  hint:L('n = PV / RT, con T = 27 + 273 K.','n = PV / RT, де T = 27 + 273 K.'),
+  steps:[L('T = 27 + 273 = 300 K','T = 27 + 273 = 300 K'),L('n = PV / RT = (2,00 × 5,00) / (0,0821 × 300) = <b>0,406 mol</b>','n = PV / RT = (2,00 × 5,00) / (0,0821 × 300) = <b>0,406 моль</b>')]}
+ ]},
+{k:'tpe',min:10,win:'46–56',t:L('Volumen molar a TPE','Молярний об’єм за н.у.'),
+ g:L('TPE = 0 °C y 1 atm. Gramos → moles → litros, como en el ejemplo 5.4.','Н.у. = 0 °C і 1 атм. Грами → молі → літри, як у прикладі 5.4.'),
+ items:[
+ {id:'c9',type:'calc',q:L('Calcula el volumen (L) que ocupan 6,8 g de NH<sub>3</sub> a TPE. (M = 17,0 g/mol)','Обчисли об’єм (л), який займають 6,8 г NH<sub>3</sub> за н.у. (M = 17,0 г/моль)'),
+  unit:'L',ans:8.96,tol:0.01,
+  hint:L('gramos → moles (÷ M) → litros (× 22,41 L/mol).','грами → молі (÷ M) → літри (× 22,41 л/моль).'),
+  steps:[L('V = 6,8 <s>g</s> × (1 <s>mol</s> / 17,0 <s>g</s>) × (22,41 L / 1 <s>mol</s>) = <b>8,96 L</b>','V = 6,8 <s>г</s> × (1 <s>моль</s> / 17,0 <s>г</s>) × (22,41 л / 1 <s>моль</s>) = <b>8,96 л</b>')]},
+ {id:'c10',type:'calc',q:L('¿Qué volumen (L) ocupan 9,2 g de NO<sub>2</sub> a TPE? (N = 14; O = 16)','Який об’єм (л) займають 9,2 г NO<sub>2</sub> за н.у.? (N = 14; O = 16)'),
+  unit:'L',ans:4.48,tol:0.01,
+  hint:L('Primero la masa molar: M(NO<sub>2</sub>) = 14 + 2·16.','Спочатку молярна маса: M(NO<sub>2</sub>) = 14 + 2·16.'),
+  steps:[L('M = 14 + 2·16 = 46 g/mol; n = 9,2 / 46 = 0,20 mol','M = 14 + 2·16 = 46 г/моль; n = 9,2 / 46 = 0,20 моль'),L('V = 0,20 × 22,41 = <b>4,48 L</b>','V = 0,20 × 22,41 = <b>4,48 л</b>')]},
+ {id:'c11',type:'calc',q:L('¿Qué masa (g) tienen 5,60 L de metano, CH<sub>4</sub>, medidos a TPE? (M = 16,0 g/mol)','Яку масу (г) мають 5,60 л метану CH<sub>4</sub>, виміряні за н.у.? (M = 16,0 г/моль)'),
+  unit:'g',ans:4.0,tol:0.01,
+  hint:L('Camino inverso: litros → moles (÷ 22,41) → gramos (× M).','Зворотний шлях: літри → молі (÷ 22,41) → грами (× M).'),
+  steps:[L('n = 5,60 / 22,41 = 0,250 mol','n = 5,60 / 22,41 = 0,250 моль'),L('m = 0,250 × 16,0 = <b>4,00 g</b>','m = 0,250 × 16,0 = <b>4,00 г</b>')]},
+ {id:'m9',type:'mc',q:L('Revisión de conceptos. ¿Cuál tendrá el mayor volumen a TPE? <b>a)</b> 0,50 mol de He, <b>b)</b> 11 g de CO<sub>2</sub>, <b>c)</b> 1,5 × 10<sup>23</sup> moléculas de Cl<sub>2</sub>, <b>d)</b> 2,0 g de H<sub>2</sub>.','Огляд понять. Який газ матиме найбільший об’єм за н.у.? <b>a)</b> 0,50 моль He, <b>b)</b> 11 г CO<sub>2</sub>, <b>c)</b> 1,5 × 10<sup>23</sup> молекул Cl<sub>2</sub>, <b>d)</b> 2,0 г H<sub>2</sub>.'),
+  opts:[L('a','a'),L('b','b'),L('c','c'),L('d','d')],ans:3,
+  why:L('Moles: a) 0,50; b) 11/44 = 0,25; c) 1,5×10<sup>23</sup>/6,02×10<sup>23</sup> = 0,25; d) 2,0/2,0 = 1,0 mol. Más moles, más volumen.','Молі: a) 0,50; b) 11/44 = 0,25; c) 1,5×10<sup>23</sup>/6,02×10<sup>23</sup> = 0,25; d) 2,0/2,0 = 1,0 моль. Більше молів — більший об’єм.')},
+ {id:'m10',type:'mc',q:L('¿Cuál de esos gases (He, CO<sub>2</sub>, Cl<sub>2</sub>, H<sub>2</sub>) tiene la mayor densidad a TPE?','Який із цих газів (He, CO<sub>2</sub>, Cl<sub>2</sub>, H<sub>2</sub>) має найбільшу густину за н.у.?'),
+  opts:[L('He (M = 4)','He (M = 4)'),L('CO<sub>2</sub> (M = 44)','CO<sub>2</sub> (M = 44)'),L('Cl<sub>2</sub> (M = 71)','Cl<sub>2</sub> (M = 71)'),L('H<sub>2</sub> (M = 2)','H<sub>2</sub> (M = 2)')],ans:2,
+  why:L('A TPE todos ocupan 22,41 L/mol; la densidad es M / 22,41, así que gana la mayor masa molar: Cl<sub>2</sub>.','За н.у. усі займають 22,41 л/моль; густина = M / 22,41, тож перемагає найбільша молярна маса: Cl<sub>2</sub>.')}
+ ]},
+{k:'cie',min:4,win:'56–60',t:L('Cierre','Підсумок'),results:true,
+ g:L('Un ticket de salida y tu resultado. La tarea para casa está en el PDF.','Квиток на вихід і твій результат. Домашнє завдання — у PDF.'),
+ items:[
+ {id:'c12',type:'calc',q:L('<b>Ticket de salida.</b> ¿Qué volumen (L) ocupan 14,0 g de N<sub>2</sub> a TPE? (M = 28,0 g/mol)','<b>Квиток на вихід.</b> Який об’єм (л) займають 14,0 г N<sub>2</sub> за н.у.? (M = 28,0 г/моль)'),
+  unit:'L',ans:11.2,tol:0.01,
+  hint:L('14,0 g es la mitad de la masa molar.','14,0 г — це половина молярної маси.'),
+  steps:[L('n = 14,0 / 28,0 = 0,500 mol','n = 14,0 / 28,0 = 0,500 моль'),L('V = 0,500 × 22,41 = <b>11,2 L</b>','V = 0,500 × 22,41 = <b>11,2 л</b>')]}
+ ]}
+];
+
+const ITEMS={}; let TOTAL=0;
+STAGES.forEach(s=>(s.items||[]).forEach(it=>{ITEMS[it.id]=it;TOTAL++;}));
+
+/* ---------- STATE ---------- */
+let R={}; let cur=0; let tot=3600, running=false, stSec=0, rendered=false;
+const st=id=>R[id]||(R[id]={attempts:0,wrong:[],done:false,score:0,msg:null,hint:false,shown:false,vals:[],res:[],draft:''});
+const pts=()=>Object.values(R).reduce((a,r)=>a+(r.done?r.score:0),0);
+const doneAll=s=>(s.items||[]).length>0&&s.items.every(x=>R[x.id]&&R[x.id].done);
+
+/* ---------- ITEM RENDER ---------- */
+const FB={
+ ok:L('¡Correcto!','Правильно!'),
+ near:L('Casi. Revisa el redondeo o la temperatura en kelvin.','Майже. Перевір округлення або температуру в кельвінах.'),
+ bad:L('Todavía no. Usa la pista y revisa las unidades.','Ще ні. Скористайся підказкою й перевір одиниці.'),
+ num:L('Escribe un número.','Введи число.'),
+ pick:L('Elige una opción en cada hueco.','Обери варіант у кожному пропуску.'),
+ retry:L('Esa no es. Prueba otra.','Це не те. Спробуй іншу.'),
+ fillbad:L('Hay huecos incorrectos (en rojo). Cámbialos.','Є неправильні пропуски (червоні). Виправ їх.')
+};
+const two=(l,c)=>`<span class="es">${l.es}</span><span class="ua ${c||''}">${l.ua}</span>`;
+const fb=(kind,l)=>l?`<div class="fb ${kind}" role="status">${l.es}<span class="ua">${l.ua}</span></div>`:'';
+const TAGS={mc:L('Elige','Обери'),fill:L('Completa','Заповни'),calc:L('Calcula','Обчисли')};
+const optTxt=o=>typeof o==='string'?o:`${o[0]} · ${o[1]}`;
+
+function itemHTML(it,n){
+  const s=st(it.id);
+  let body='';
+  if(it.type==='mc'){
+    body=`<div class="q"><p class="es">${it.q.es}</p><p class="ua">${it.q.ua}</p></div><div class="opts">`+
+      it.opts.map((o,i)=>`<button class="opt ${s.done&&i===it.ans?'ok':''} ${s.wrong.includes(i)?'bad':''}" data-act="pick" data-i="${i}" ${(s.done||s.wrong.includes(i))?'disabled':''}><span class="es">${o.es}</span><span class="ua">${o.ua}</span></button>`).join('')+`</div>`;
+    if(s.done) body+=fb('ok',L(`${FB.ok.es} ${it.why.es}`,`${FB.ok.ua} ${it.why.ua}`));
+    else if(s.msg) body+=fb('bad',s.msg);
+  }
+  if(it.type==='fill'){
+    let k=0; const dis=s.done?'disabled':'';
+    const sent=it.es.map(p=>{
+      if(typeof p==='string') return p;
+      const b=k++; const v=s.vals[b]===undefined?'':s.vals[b];
+      return `<select data-b="${b}" class="${s.res[b]===true?'ok':s.res[b]===false?'bad':''}" ${dis} aria-label="${b+1}"><option value="">…</option>`+
+        p.o.map((o,i)=>`<option value="${i}" ${String(v)===String(i)?'selected':''}>${optTxt(o)}</option>`).join('')+`</select>`;
+    }).join('');
+    body=`<div class="fill">${sent}</div><div class="fill-ua ua">${it.ua}</div>`;
+    if(!s.done) body+=`<div class="row"><button class="btn" data-act="checkfill">Comprobar · Перевірити</button>${s.attempts>0?`<button class="btn ghost" data-act="showfill">Ver respuesta · Показати відповідь</button>`:''}</div>`;
+    if(s.msg) body+=fb(s.msg.kind||'bad',s.msg);
+  }
+  if(it.type==='calc'){
+    body=`<div class="q"><p class="es">${it.q.es}</p><p class="ua">${it.q.ua}</p></div>
+      <div class="calc"><input class="num" id="in-${it.id}" inputmode="decimal" autocomplete="off" placeholder="…" value="${s.draft.replace(/"/g,'')}" ${s.done?'disabled':''} aria-label="Respuesta · Відповідь"><span class="unit">${it.unit}</span>
+      ${s.done?'':`<button class="btn" data-act="check">Comprobar · Перевірити</button>`}</div>`;
+    if(!s.done) body+=`<div class="row"><button class="btn ghost" data-act="hint">Pista · Підказка</button><button class="btn ghost" data-act="solve">Ver solución · Показати розв’язок</button></div>`;
+    if(s.hint&&!s.done) body+=fb('note',it.hint);
+    if(s.msg) body+=fb(s.msg.kind||'bad',s.msg);
+    if(s.shown) body+=`<div class="steps">`+it.steps.map(x=>`<div>${x.es}<span class="ua">${x.ua}</span></div>`).join('')+`</div>`;
+  }
+  return `<article class="item ${s.done?'done':''}" data-id="${it.id}"><div class="i-head"><span class="i-n">${s.done?'✓':n}</span><span class="tag">${TAGS[it.type].es} · ${TAGS[it.type].ua}</span></div>${body}</article>`;
+}
+
+/* ---------- ACTIONS ---------- */
+function parseNum(v){const x=Number(String(v).trim().replace(/\s/g,'').replace(',','.'));return (String(v).trim()===''||!isFinite(x))?NaN:x;}
+function sync(it,card){
+  const s=st(it.id);
+  if(it.type==='calc'){const i=$('input.num',card); if(i) s.draft=i.value;}
+  if(it.type==='fill'){card.querySelectorAll('select').forEach(el=>{s.vals[+el.dataset.b]=el.value;});}
+}
+function redraw(it,keepFocus){
+  const old=$(`.item[data-id="${it.id}"]`); if(!old) return;
+  const n=(STAGES[cur].items||[]).indexOf(it)+1;
+  old.outerHTML=itemHTML(it,n);
+  if(keepFocus){const i=$(`#in-${it.id}`); if(i&&!i.disabled) i.focus();}
+  paint(); if(STAGES[cur].results) paintResults();
+}
+const ACT={
+ pick(it,card,b){const s=st(it.id); if(s.done) return; const i=+b.dataset.i;
+  if(i===it.ans){s.done=true;s.score=s.attempts===0?1:.5;s.msg=null;}
+  else{s.attempts++;s.wrong.push(i);s.msg=FB.retry;}
+  redraw(it);},
+ check(it,card){sync(it,card);const s=st(it.id); if(s.done) return;
+  const v=parseNum(s.draft);
+  if(isNaN(v)){s.msg={kind:'warn',...FB.num};return redraw(it,true);}
+  const err=Math.abs(v-it.ans)/Math.abs(it.ans);
+  if(err<=it.tol){s.done=true;s.score=(s.attempts===0&&!s.hint)?1:.5;s.msg={kind:'ok',...FB.ok};s.shown=true;}
+  else{s.attempts++;s.msg=err<=0.06?{kind:'warn',...FB.near}:{kind:'bad',...FB.bad};}
+  redraw(it,!s.done);},
+ hint(it,card){sync(it,card);const s=st(it.id);s.hint=!s.hint;redraw(it,true);},
+ solve(it,card){sync(it,card);const s=st(it.id); if(!s.done){s.done=true;s.score=0;s.msg=null;s.draft=String(it.ans).replace('.',',');} s.shown=true;redraw(it);},
+ checkfill(it,card){sync(it,card);const s=st(it.id);
+  const bl=it.es.filter(p=>typeof p!=='string');
+  if(bl.some((p,b)=>s.vals[b]===undefined||s.vals[b]==='')){s.msg={kind:'warn',...FB.pick};return redraw(it);}
+  s.res=bl.map((p,b)=>+s.vals[b]===p.a);
+  if(s.res.every(Boolean)){s.done=true;s.score=s.attempts===0?1:.5;s.msg={kind:'ok',...FB.ok};}
+  else{s.attempts++;s.msg={kind:'bad',...FB.fillbad};}
+  redraw(it);},
+ showfill(it,card){const s=st(it.id);const bl=it.es.filter(p=>typeof p!=='string');
+  s.vals=bl.map(p=>String(p.a));s.res=bl.map(()=>true);if(!s.done){s.done=true;s.score=0;}s.msg={kind:'note',es:'Respuesta mostrada.',ua:'Відповідь показано.'};redraw(it);}
+};
+
+/* ---------- STAGE RENDER ---------- */
+let labRAF=0;
+function render(){
+  cancelAnimationFrame(labRAF);
+  const s=STAGES[cur];
+  let h=`<p class="eyebrow">Etapa ${cur+1}/${STAGES.length} · ${s.win} min · Етап ${cur+1}/${STAGES.length}</p>
+   <h1>${s.t.es}</h1><h1 class="ua">${s.t.ua}</h1>
+   <p class="goal">${s.g.es}<span class="ua">${s.g.ua}</span></p>`;
+  if(s.theory) h+=theoryHTML();
+  (s.items||[]).forEach((it,i)=>{h+=itemHTML(it,i+1);});
+  if(s.results) h+=`<div id="results"></div>`;
+  h+=`<div class="nav">${cur>0?`<button class="btn ghost" data-nav="-1">← Anterior · Назад</button>`:'<span></span>'}${cur<STAGES.length-1?`<button class="btn" data-nav="1">Siguiente etapa · Далі →</button>`:''}</div>`;
+  $('#main').innerHTML=h;
+  if(s.theory) initLab();
+  if(s.results) paintResults();
+  rendered=true; paint();
+}
+function theoryHTML(){
+return `
+<div class="grid">
+ <div class="card"><h3>Presión<span class="ua">Тиск</span></h3><div class="formula">P = F / A</div>
+  <div class="formula">1 atm = 760 mmHg<br>= 101 325 Pa</div>
+  <p>1 torr = 1 mmHg · 1 kPa = 1000 Pa</p><p class="ua">Тиск = сила / площа. 1 торр = 1 мм рт. ст.</p></div>
+ <div class="card"><h3>Ley de Boyle<span class="ua">Закон Бойля</span></h3><div class="formula">P₁V₁ = P₂V₂</div>
+  <p>T y n constantes. Si P sube, V baja.</p><p class="ua">T і n сталі. Якщо P зростає, V зменшується.</p></div>
+ <div class="card"><h3>Ley de Charles<span class="ua">Закон Шарля</span></h3><div class="formula">V₁/T₁ = V₂/T₂</div>
+  <p>P y n constantes. T en kelvin: K = °C + 273.</p><p class="ua">P і n сталі. T у кельвінах: K = °C + 273.</p></div>
+ <div class="card"><h3>Ley de Avogadro<span class="ua">Закон Авогадро</span></h3><div class="formula">V₁/n₁ = V₂/n₂</div>
+  <p>P y T constantes. Más moles, más volumen.</p><p class="ua">P і T сталі. Більше молів — більший об’єм.</p></div>
+ <div class="card"><h3>Gas ideal<span class="ua">Ідеальний газ</span></h3><div class="formula">PV = nRT</div>
+  <p>R = 0,0821 L·atm/(K·mol)</p><p class="ua">P в атм, V у літрах, T у кельвінах.</p></div>
+ <div class="card"><h3>TPE (0 °C, 1 atm)<span class="ua">Н.у. (0 °C, 1 атм)</span></h3><div class="formula">V = (m / M) × 22,41</div>
+  <p>1 mol de gas ideal = 22,41 L</p><p class="ua">1 моль ідеального газу = 22,41 л</p></div>
+</div>
+<div class="plan"><h3>Método en 4 pasos · Метод у 4 кроки</h3><ol>
+ <li>Datos y unidades. <span class="ua">Дані й одиниці.</span></li>
+ <li>T en kelvin (°C + 273). <span class="ua">T у кельвінах.</span></li>
+ <li>Elige la fórmula y despeja. <span class="ua">Обери формулу й виразити невідоме.</span></li>
+ <li>¿Tiene sentido el resultado? <span class="ua">Чи має результат сенс?</span></li></ol></div>
+<section class="lab" id="lab" aria-label="Laboratorio virtual">
+ <div class="lab-head"><h3>Laboratorio virtual<span class="ua">Віртуальна лабораторія</span></h3>
+  <div class="seg"><button data-lab="boyle" class="on">Boyle</button><button data-lab="charles">Charles</button></div></div>
+ <div class="lab-body"><svg id="labSvg" viewBox="0 0 320 250" role="img" aria-label="Cilindro con pistón y moléculas · Циліндр із поршнем і молекулами"></svg>
+  <div class="lab-ctl"><label for="labSlider" id="labLbl"></label><input type="range" id="labSlider">
+   <dl class="readout" id="labOut"></dl><p class="lab-note" id="labNote"></p></div></div>
+</section>`;
+}
+
+/* ---------- LAB ---------- */
+function initLab(){
+  const svg=$('#labSvg'), sl=$('#labSlider'); let mode='boyle';
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mols=Array.from({length:14},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.022,vy:(Math.random()-.5)*.022}));
+  const cfg={
+   boyle:{min:.5,max:4,step:.25,val:1,lbl:'Presión · Тиск: P (atm)'},
+   charles:{min:200,max:500,step:10,val:300,lbl:'Temperatura · Температура: T (K)'}
+  };
+  function setMode(m){mode=m;const c=cfg[m];sl.min=c.min;sl.max=c.max;sl.step=c.step;sl.value=c.val;$('#labLbl').textContent=c.lbl;
+    document.querySelectorAll('[data-lab]').forEach(b=>b.classList.toggle('on',b.dataset.lab===m));draw();}
+  function vol(){const x=+sl.value;return mode==='boyle'?6/x:0.02*x;}
+  function draw(){
+    const x=+sl.value,V=vol(),h=V*14,top=220-h;
+    const hue=mode==='charles'?Math.round(215-(x-200)/300*190):210;
+    const fill=`hsl(${hue} 75% 55% / .22)`;
+    let g=`<path d="M90 20 V222 H230 V20" fill="none" stroke="var(--ink-2)" stroke-width="4" stroke-linejoin="round"/>
+     <rect x="92" y="${top}" width="136" height="${h}" fill="${fill}"/>
+     <line x1="160" y1="6" x2="160" y2="${top-10}" stroke="var(--ink-2)" stroke-width="4"/>
+     <rect x="136" y="2" width="48" height="8" rx="3" fill="var(--ink-2)"/>
+     <rect x="92" y="${top-10}" width="136" height="10" rx="2" fill="var(--accent)"/>`;
+    g+=mols.map((m,i)=>`<circle id="mol${i}" r="4.6" fill="var(--gas)" cx="${100+m.x*120}" cy="${top+6+m.y*Math.max(h-12,1)}"/>`).join('');
+    if(mode==='boyle') g+=`<text x="236" y="${Math.max(top+4,16)}" fill="var(--ink)" font-size="13" font-family="JetBrains Mono,monospace" font-weight="600">P = ${String(x).replace('.',',')} atm</text>`;
+    else g+=`<text x="160" y="244" text-anchor="middle" fill="var(--ink)" font-size="13" font-family="JetBrains Mono,monospace" font-weight="600">T = ${x} K (${x-273} °C)</text>`;
+    svg.innerHTML=g;
+    const f=n=>String(Math.round(n*100)/100).replace('.',',');
+    $('#labOut').innerHTML=mode==='boyle'
+     ?`<div><dt>P (atm)</dt><dd>${f(x)}</dd></div><div><dt>V (L)</dt><dd>${f(V)}</dd></div><div><dt>P × V</dt><dd>${f(x*V)}</dd></div>`
+     :`<div><dt>T (K)</dt><dd>${x}</dd></div><div><dt>V (L)</dt><dd>${f(V)}</dd></div><div><dt>V / T</dt><dd>${(V/x).toFixed(3).replace('.',',')}</dd></div>`;
+    $('#labNote').innerHTML=mode==='boyle'
+     ?`Mueve P: el producto P × V no cambia (T y n constantes).<span class="ua">Рухай P: добуток P × V не змінюється (T і n сталі).</span>`
+     :`Sube T: V crece y V / T no cambia (P y n constantes).<span class="ua">Збільш T: V росте, а V / T не змінюється (P і n сталі).</span>`;
+  }
+  function frame(){
+    const x=+sl.value,V=vol(),h=V*14,top=220-h,sp=mode==='charles'?Math.sqrt(x/300):1;
+    mols.forEach((m,i)=>{m.x+=m.vx*sp;m.y+=m.vy*sp;if(m.x<0||m.x>1){m.vx*=-1;m.x=Math.min(1,Math.max(0,m.x));}if(m.y<0||m.y>1){m.vy*=-1;m.y=Math.min(1,Math.max(0,m.y));}
+      const c=document.getElementById('mol'+i);if(c){c.setAttribute('cx',100+m.x*120);c.setAttribute('cy',top+6+m.y*Math.max(h-12,1));}});
+    labRAF=requestAnimationFrame(frame);
+  }
+  sl.addEventListener('input',draw);
+  document.querySelectorAll('[data-lab]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.lab)));
+  setMode('boyle'); if(!reduce) labRAF=requestAnimationFrame(frame);
+}
+
+/* ---------- RESULTS ---------- */
+function paintResults(){
+  const el=$('#results'); if(!el) return;
+  const P=pts(); const pct=TOTAL?P/TOTAL:0;
+  const msg=pct>=.85?L('Excelente. Dominas los gases.','Чудово. Ти добре володієш темою газів.'):pct>=.6?L('Buen trabajo. Repasa las etapas con barra más corta.','Гарна робота. Повтори етапи з коротшою смугою.'):L('Buen comienzo. Repite las etapas con pista y haz la tarea para casa.','Гарний початок. Повтори етапи з підказкою й виконай домашнє завдання.');
+  const rows=STAGES.filter(s=>(s.items||[]).length).map(s=>{
+    const sc=s.items.reduce((a,x)=>a+((R[x.id]&&R[x.id].done)?R[x.id].score:0),0);
+    return `<div class="bar-row"><span>${s.t.es} · <span class="ua">${s.t.ua}</span></span><span class="track"><span class="fillbar" style="display:block;width:${Math.round(sc/s.items.length*100)}%"></span></span><span>${fmt(sc)} / ${s.items.length}</span></div>`;}).join('');
+  el.innerHTML=`<section class="res"><h2>Tu resultado · Твій результат</h2>
+   <div class="big">${fmt(P)} <small>/ ${TOTAL}</small></div>
+   <div class="bars">${rows}</div>
+   <p>${msg.es}<br><span class="ua">${msg.ua}</span></p>
+   <p class="hw">Tarea para casa: archivo PDF «Tarea para casa: los gases». <span class="ua">Домашнє завдання: PDF-файл «Tarea para casa: los gases».</span></p>
+   <div class="row"><button class="btn ghost" data-act2="reset">Reiniciar lección · Почати спочатку</button></div></section>`;
+}
+
+/* ---------- CHROME ---------- */
+const mmss=sec=>{const a=Math.abs(sec);return `${sec<0?'+':''}${Math.floor(a/60)}:${String(a%60).padStart(2,'0')}`;};
+function paint(){
+  $('#clk').textContent=mmss(tot);
+  $('#tmAll').classList.toggle('low',tot<=300&&tot>0);
+  const rem=STAGES[cur].min*60-stSec; $('#stClk').textContent=mmss(rem); $('#tmStage').classList.toggle('late',rem<0);
+  $('#score').textContent=`${fmt(pts())} / ${TOTAL}`;
+  $('#clkBtn').textContent=running?'Pausa · Пауза':(tot<3600&&tot>0?'Continuar · Далі':'Iniciar · Почати');
+  $('#chips').innerHTML=STAGES.map((s,i)=>{const d=doneAll(s);return `<button class="chip ${i===cur?'on':''} ${d?'done':''}" data-go="${i}"><span class="n">${d?'✓':i+1}</span><span class="cn"><b>${s.t.es}</b><small>${s.win} min</small></span></button>`;}).join('');
+}
+function go(i){cur=Math.max(0,Math.min(STAGES.length-1,i));stSec=0;try{history.replaceState(null,'','#etapa-'+(cur+1));}catch(e){}render();window.scrollTo(0,0);}
+
+setInterval(()=>{if(!running)return;tot=Math.max(0,tot-1);stSec++;if(tot===0)running=false;paint();},1000);
+$('#clkBtn').addEventListener('click',()=>{if(tot===0)return;running=!running;paint();});
+$('#clkReset').addEventListener('click',()=>{tot=3600;stSec=0;running=false;paint();});
+$('#uaToggle').addEventListener('change',e=>document.body.classList.toggle('hide-ua',!e.target.checked));
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(+b.dataset.go);});
+const main=$('#main');
+main.addEventListener('click',e=>{
+  const n=e.target.closest('[data-nav]'); if(n){go(cur+(+n.dataset.nav));return;}
+  const r=e.target.closest('[data-act2="reset"]'); if(r){R={};tot=3600;running=false;go(0);return;}
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const card=b.closest('.item'); if(!card) return;
+  const it=ITEMS[card.dataset.id]; if(it&&ACT[b.dataset.act]) ACT[b.dataset.act](it,card,b);
+});
+main.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.matches('input.num')){const card=e.target.closest('.item');const it=ITEMS[card.dataset.id];ACT.check(it,card);}
+});
+window.addEventListener('hashchange',()=>{const m=/^#etapa-(\d)$/.exec(location.hash);if(m){const i=+m[1]-1;if(i!==cur&&i>=0&&i<STAGES.length){cur=i;stSec=0;render();window.scrollTo(0,0);}}});
+const m0=/^#etapa-(\d)$/.exec(location.hash); if(m0&&+m0[1]>=1&&+m0[1]<=STAGES.length) cur=+m0[1]-1;
+render();
+})();
+</script>
+
+</body></html>
